@@ -48,16 +48,15 @@ exports.setNewStatus = (req, res) => {
 
 exports.saveAvatar = (req, res) => {
     const id = req.user[0].user_id;
-    response.status(200, req.file.path, res)
-    // db.query("UPDATE users SET avatar='" + req.body.status + "' WHERE user_id=" + id + "", (error, results) => {
-    //     if (error) {
-    //         response.status(400, error, res)
-    //         // console.log(error)
-    //     } else {
-    //         response.status(200, { message: `Статус успешно изменен.`, results }, res)
-    //         // console.log(rows)
-    //     }
-    // })
+    // Меняем двойной обратный слэш на одинарный обычный в пути к файлу, что бы можно было записать в бд и считать в нормальной форме
+    req.file.path = req.file.path.replace("\\","/")
+    db.query("UPDATE users SET avatar='" + req.file.path + "' WHERE user_id=" + id + "", (error, results) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            response.status(200, req.file.path, res)
+        }
+    })
 }
 
 // exports.messenger = (socket) => {
