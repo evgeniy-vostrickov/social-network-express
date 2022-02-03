@@ -92,3 +92,127 @@ exports.me = (req, res) => {
         }
     })
 }
+
+exports.getAllUsers = (req, res) => {
+    const id = req.user[0].user_id;
+    const count = req.query.count;
+    const page = req.query.page;
+    const beginTakeUser = (parseInt(page) - 1) * parseInt(count);
+    let totalCount = 0; //количество записей в базе данных
+    db.query("SELECT COUNT(*) AS totalCount FROM users", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            totalCount = rows[0].totalCount;
+            totalCount = parseInt(totalCount) - 1; //вычитаем пользователя который посылает запрос
+        }
+    })
+    db.query("SELECT user_id, email, user_name, surname, avatar, place_work_study FROM users WHERE user_id NOT IN (" + id + ") LIMIT " + beginTakeUser + ", " + count + "", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            let users = rows;
+            response.status(200, { users, totalCount }, res)
+        }
+    })
+}
+
+exports.foundUsers = (req, res) => {
+    const count = req.query.count;
+    const page = req.query.page;
+    const beginTakeUser = (parseInt(page) - 1) * parseInt(count);
+    let totalCount = 0; //количество записей в базе данных
+    let users = null; //найденные записи
+    db.query("SELECT COUNT(*) AS totalCount FROM (SELECT user_id, LOCATE('" + req.query.searchField + "', surname) as pos FROM users) AS temp_table WHERE temp_table.pos>0", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            totalCount = rows[0].totalCount;
+        }
+    })
+    db.query("SELECT COUNT(*) AS totalCount FROM (SELECT user_id, LOCATE('" + req.query.searchField + "', user_name) as pos FROM users) AS temp_table WHERE temp_table.pos>0", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            totalCount = parseInt(totalCount) + parseInt(rows[0].totalCount);
+        }
+    })
+    db.query("SELECT user_id, email, user_name, surname, avatar, place_work_study FROM (SELECT *, LOCATE('" + req.query.searchField + "', surname) as pos FROM users) AS temp_table WHERE temp_table.pos>0 LIMIT " + beginTakeUser + ", " + count + "", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            users = rows;
+        }
+    })
+    db.query("SELECT user_id, email, user_name, surname, avatar, place_work_study FROM (SELECT *, LOCATE('" + req.query.searchField + "', user_name) as pos FROM users) AS temp_table WHERE temp_table.pos>0 LIMIT " + beginTakeUser + ", " + count + "", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            users = [...users, ...rows];
+            response.status(200, { users, totalCount }, res)
+        }
+    })
+}
+
+exports.getFullInfoUser = (req, res) => {
+    const id = req.query.user;
+    let friends = null;
+    let groups = null;
+    let userInfo = null;
+    db.query("SELECT users.user_name, users.surname, users.direction_work_study FROM (SELECT friends.first_user_id, friends.second_user_id FROM friends friends WHERE first_user_id=" + id + " OR second_user_id=" + id + ") AS f LEFT JOIN users ON (first_user_id=user_id AND user_id!=" + id + ") OR (second_user_id=user_id AND user_id!=" + id + ")", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            friends = rows;
+        }
+    })
+    db.query("SELECT gn.group_name, gn.city FROM band_members bm LEFT JOIN group_network gn ON bm.group_id = gn.group_id WHERE bm.user_id=" + id + "", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            groups = rows;
+        }
+    })
+    db.query("SELECT user_name, surname, email, status, avatar, date_births, place_work_study, direction_work_study FROM users WHERE user_id=" + id + "", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            userInfo = rows[0];
+            response.status(200, {friends, groups, userInfo}, res)
+        }
+    })
+}
+
+exports.followUser = (req, res) => {
+    const id = req.user[0].user_id;
+    console.log(req.query.confirmation)
+    if (req.query.confirmation != "false"){
+        db.query("UPDATE friends SET confirmation='1' WHERE (first_user_id=" + id + " AND second_user_id=" + req.query.user + ") OR (first_user_id=" + req.query.user + " AND second_user_id=" + id + ")", (error, rows, fields) => {
+            if (error) {
+                response.status(400, error, res)
+            } else {
+                response.status(200, rows, res)
+            }
+        })
+    } else {
+        console.log("dsd")
+        db.query("INSERT INTO `friends`(`first_user_id`, `second_user_id`, `confirmation`) VALUES('" + id + "', '" + req.query.user + "', '0')", (error, rows, fields) => {
+            if (error) {
+                response.status(400, error, res)
+            } else {
+                response.status(200, rows, res)
+            }
+        })
+    }
+}
+
+exports.unfollowUser = (req, res) => {
+    const id = req.user[0].user_id;
+    db.query("DELETE FROM friends WHERE (first_user_id=" + id + " AND second_user_id=" + req.query.user + ") OR (first_user_id=" + req.query.user + " AND second_user_id=" + id + ")", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            response.status(200, rows, res)
+        }
+    })
+}

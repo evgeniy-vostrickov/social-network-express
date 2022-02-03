@@ -31,10 +31,9 @@ server.listen(port, () => {
 
 io.on('connection', function (socket) {
     console.log(socket.id);
-    socket.on('DIALOGS:JOIN', (dialogId) => {
-        socket.dialogId = dialogId;
-        socket.join(dialogId);
-        console.log(socket.dialogId);
+    socket.on('DIALOGS:JOIN', (userId) => {
+        // socket.dialogId = dialogId;
+        socket.join(userId);
     });
     // socket.on('DIALOGS:TYPING', (obj) => {
     //     socket.broadcast.emit('DIALOGS:TYPING', obj);

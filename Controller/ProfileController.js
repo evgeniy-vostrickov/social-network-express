@@ -5,12 +5,10 @@ const db = require('./../settings/db')
 
 
 exports.getFriends = (req, res) => {
-    // console.log(req.user[0].user_id)
     const id = req.user[0].user_id;
-    db.query("SELECT users.user_name, users.surname, users.direction_work_study FROM (SELECT friends.first_user_id, friends.second_user_id FROM friends friends WHERE first_user_id=" + id + " OR second_user_id=" + id + ") AS f LEFT JOIN users ON (first_user_id=user_id AND user_id!=" + id + ") OR (second_user_id=user_id AND user_id!=" + id + ")", (error, rows, fields) => {
+    db.query("SELECT users.user_id, users.email, users.user_name, users.surname, users.direction_work_study, f.second_user_id, f.confirmation FROM (SELECT * FROM friends WHERE first_user_id=" + id + " OR second_user_id=" + id + ") AS f LEFT JOIN users ON (first_user_id=user_id AND user_id!=" + id + ") OR (second_user_id=user_id AND user_id!=" + id + ")", (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
-            // console.log(error)
         } else {
             response.status(200, rows, res)
             // console.log(rows)
@@ -19,15 +17,12 @@ exports.getFriends = (req, res) => {
 }
 
 exports.getFollowGroups = (req, res) => {
-    // console.log(req.user[0].user_id)
     const id = req.user[0].user_id;
-    db.query("SELECT gn.group_name, gn.number_participants FROM band_members bm LEFT JOIN group_network gn ON bm.group_id = gn.group_id WHERE bm.user_id=" + id + "", (error, rows, fields) => {
+    db.query("SELECT gn.group_name, gn.city FROM band_members bm LEFT JOIN group_network gn ON bm.group_id = gn.group_id WHERE bm.user_id=" + id + "", (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
-            // console.log(error)
         } else {
             response.status(200, rows, res)
-            // console.log(rows)
         }
     })
 }

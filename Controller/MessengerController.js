@@ -5,38 +5,31 @@ const db = require('./../settings/db')
 
 exports.addNewDialog = (io) => {
     return (req, res) => {
-        //В БД создаем новый диалог
-        //!!!Нужно создать диалог для двух пользователей
-        //!Нужна проверка на существование диалога
         const id = req.user[0].user_id;
-        // db.query("SELECT user_id, dialog_id FROM users_dialogs WHERE user_id=" + id + "", (error, rows, fields) => {
-        //     if (error) {
-        //         response.status(400, error, res)
-        //     } else if (typeof rows !== 'undefined' && rows.length > 0) {
-        //         console.log(rows)
-        //         const row = JSON.parse(JSON.stringify(rows))
-        //         row.map(rw => {
-        //             response.status(302, { message: `Диалог с таким пользователем уже существует!` }, res)
-        //             return true
-        //         })
-        //     } 
-        // })
-
-        db.query("INSERT INTO `users_dialogs`(`user_id`) VALUES('" + id + "')", (error, results) => {
+        const user_id = req.body.user_id;
+        const textMessage = req.body.message;
+        const timestamp = req.body.timestamp;
+        db.query("SELECT * FROM users_dialogs ud WHERE (first_user_id=" + id + " AND ud.second_user_id=" + user_id + ") OR (ud.first_user_id=" + user_id + " AND ud.second_user_id=" + id + ")", (error, rows, fields) => {
             if (error) {
                 response.status(400, error, res)
-                // console.log(error)
+            } else if (typeof rows !== 'undefined' && rows.length > 0) {
+                response.status(302, {dialogExists: "Диалог с данным пользователем уже существует, перейдите в сообщения!"}, res)
             } else {
-                // response.status(200, rows, res)
-                // console.log(results.insertId)
-                const textMessage = req.body.message;
-                db.query("INSERT INTO `messages`(`dialog_id`, `message_id`, `user_id`, `text_message`) VALUES('" + results.insertId + "', '" + 0 + "', '" + req.body.user_id + "', '" + textMessage + "')", (error, results) => {
+                db.query("INSERT INTO `users_dialogs`(`first_user_id`, `second_user_id`) VALUES('" + id + "', '" + user_id + "')", (error, results) => {
                     if (error) {
                         response.status(400, error, res)
-                        // console.log(error)
                     } else {
-                        response.status(200, textMessage, res)
-                        io.emit('SERVER:DIALOG_CREATED', { textMessage });
+                        const dialogId = results.insertId;
+                        db.query("INSERT INTO `messages`(`dialog_id`, `message_id`, `user_id`, `text_message`, `timestamp`) VALUES('" + dialogId + "', '" + 0 + "', '" + id + "', '" + textMessage + "', '" + timestamp + "')", (error, results) => {
+                            if (error) {
+                                response.status(400, error, res)
+                                // console.log(error)
+                            } else {
+                                io.sockets.in(user_id).emit('CLIENT:NEW_MESSAGE', { dialogId, message: {author: id, message_id: 0, text_message: textMessage, timestamp} });
+                                io.sockets.in(id).emit('CLIENT:NEW_MESSAGE', { dialogId, message: {author: id, message_id: 0, text_message: textMessage, timestamp} });
+                                response.status(200, { author: id, message_id: 0, text_message: textMessage, timestamp: timestamp }, res)
+                            }
+                        })
                     }
                 })
             }
@@ -47,7 +40,7 @@ exports.addNewDialog = (io) => {
 exports.getAllDialogs = (req, res) => {
     const id = req.user[0].user_id;
     //SELECT text_message FROM messages WHERE dialog_id=25 ORDER BY message_id DESC LIMIT 1
-    db.query("SELECT dialog_id, users.user_name as name, users.surname, users.avatar FROM (SELECT users_dialogs.first_user_id, users_dialogs.second_user_id, dialog_id FROM users_dialogs WHERE first_user_id=" + id + " OR second_user_id=" + id + ") AS f LEFT JOIN users ON (first_user_id=user_id AND user_id!=" + id + ") OR (second_user_id=user_id AND user_id!=" + id + ")", (error, rows, fields) => {
+    db.query("SELECT dialog_id, user_id, users.user_name as name, users.surname, users.avatar FROM (SELECT users_dialogs.first_user_id, users_dialogs.second_user_id, dialog_id FROM users_dialogs WHERE first_user_id=" + id + " OR second_user_id=" + id + ") AS f LEFT JOIN users ON (first_user_id=user_id AND user_id!=" + id + ") OR (second_user_id=user_id AND user_id!=" + id + ")", (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
             // console.log(error)
@@ -63,6 +56,7 @@ exports.sendNewMessage = (io) => {
         const textMessage = req.body.message;
         const dialogId = req.body.dialogId;
         const numMessage = req.body.numLastMessage;
+        const userIdRecipient = req.body.userIdRecipient;
         const timestamp = req.body.timestamp;
         const id = req.user[0].user_id;
         db.query("INSERT INTO `messages`(`dialog_id`, `message_id`, `user_id`, `text_message`, `timestamp`) VALUES('" + dialogId + "', '" + numMessage + "', '" + id + "', '" + textMessage + "', '" + timestamp + "')", (error, results) => {
@@ -70,8 +64,8 @@ exports.sendNewMessage = (io) => {
                 response.status(400, error, res)
                 // console.log(error)
             } else {
-                io.sockets.in(dialogId).emit('CLIENT:NEW_MESSAGE', { dialogId, message: {author: id, message_id: numMessage, text_message: textMessage, timestamp} });
-                // io.emit('SERVER:NEW_MESSAGE', { dialogId, message: {author: id, message_id: numMessage, text_message: textMessage, timestamp} })
+                io.sockets.in(userIdRecipient).emit('CLIENT:NEW_MESSAGE', { dialogId, message: {author: id, message_id: numMessage, text_message: textMessage, timestamp} });
+                io.sockets.in(id).emit('CLIENT:NEW_MESSAGE', { dialogId, message: {author: id, message_id: numMessage, text_message: textMessage, timestamp} });
                 response.status(200, { author: id, message_id: numMessage, text_message: textMessage, timestamp: timestamp }, res)
             }
         })
