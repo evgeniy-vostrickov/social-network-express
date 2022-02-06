@@ -83,6 +83,16 @@ exports.getAllComments = (req, res) => {
         }
     })
 }
+exports.getAllCommentsUser = (req, res) => {
+    const id = req.user[0].user_id;
+    db.query("SELECT temp_bd.comment_id, temp_bd.comment_text, book_name, author, user_name, surname, avatar, temp_bd.date FROM (SELECT * FROM comments WHERE user_id=" + id + " AND comment_type='" + req.query.comment + "') AS temp_bd LEFT JOIN users ON temp_bd.user_id=users.user_id LEFT JOIN books ON temp_bd.book_id=books.book_id", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            response.status(200, rows, res)
+        }
+    })
+}
 exports.addNewComment = (req, res) => {
     const id = req.user[0].user_id;
     db.query("INSERT INTO `comments`(`book_id`, `comment_type`, `comment_text`, `date`, `user_id`) VALUES('" + req.query.book + "', '" + req.query.comment + "', '" + req.body.comment + "', '" + moment().format('YYYY-MM-DD') + "', '" + id + "')", (error, rows, fields) => {
@@ -112,16 +122,31 @@ exports.addBookInDiaryReader = (req, res) => {
 exports.getAllBooks = (req, res) => {
     const count = req.query.count;
     const page = req.query.page;
+    const isSorted = req.query.isSorted;
+    const fieldSort = req.query.fieldSort;
+    const typeBook = req.query.typeBook;
     const beginTakeBook = (parseInt(page) - 1) * parseInt(count);
     let totalCount = 0; //количество записей в базе данных
-    db.query("SELECT COUNT(*) AS totalCount FROM books", (error, rows, fields) => {
+
+    // console.log(typeBook)
+
+    const partSqlSorted = isSorted === "true" ? " ORDER BY " + fieldSort + " DESC " : "";
+    const partSqlEducational = typeBook != "undefined" ? " WHERE type_book='" + typeBook + "' " : "";
+
+    const sql = "SELECT book_id, book_name, author, book_description, illustration_cover, year_publication FROM books " + partSqlEducational + partSqlSorted + " LIMIT " + beginTakeBook + ", " + count + "";
+    console.log(sql)
+    // if (isSorted === "true")
+    //     sql = "SELECT book_id, book_name, author, book_description, illustration_cover, year_publication FROM books ORDER BY " + fieldSort + " DESC LIMIT " + beginTakeBook + ", " + count + "";
+    // else
+    //     sql = "SELECT book_id, book_name, author, book_description, illustration_cover, year_publication FROM books LIMIT " + beginTakeBook + ", " + count + "";
+    db.query("SELECT COUNT(*) AS totalCount FROM books " + partSqlEducational + "", (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {
             totalCount = rows[0].totalCount;
         }
     })
-    db.query("SELECT book_id, book_name, author, book_description, illustration_cover FROM books LIMIT " + beginTakeBook + ", " + count + "", (error, rows, fields) => {
+    db.query(sql, (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {
@@ -133,13 +158,25 @@ exports.getAllBooks = (req, res) => {
 exports.foundBooks = (req, res) => {
     const count = req.query.count;
     const page = req.query.page;
+    const isSorted = req.query.isSorted;
+    const fieldSort = req.query.fieldSort;
+    const typeBook = req.query.typeBook;
     const beginTakeBook = (parseInt(page) - 1) * parseInt(count);
-    const getConversionSqlCount = (searchField, fieldFind) => ("SELECT COUNT(*) AS totalCount FROM (SELECT book_id, LOCATE('" + searchField + "', " + fieldFind + ") as pos FROM books) AS temp_table WHERE temp_table.pos>0")
-    const getConversionSqlFind = (searchField, fieldFind) => ("SELECT book_id, book_name, author, book_description, illustration_cover FROM (SELECT *, LOCATE('" + searchField + "', " + fieldFind + ") as pos FROM books) AS temp_table WHERE temp_table.pos>0 LIMIT " + beginTakeBook + ", " + count + "")
+
+    const partSqlSorted = isSorted === "true" ? " ORDER BY " + fieldSort + " DESC " : "";
+    const partSqlEducational = typeBook != "undefined" ? " WHERE type_book='" + typeBook + "' " : "";
+    
+    const getConversionSqlCount = (searchField, fieldFind) => ("SELECT COUNT(*) AS totalCount FROM (SELECT *, LOCATE('" + searchField + "', " + fieldFind + ") as pos FROM books " + partSqlEducational + ") AS temp_table WHERE temp_table.pos>0 ")
+    const getConversionSqlFind = (searchField, fieldFind) => {
+        return ("SELECT book_id, book_name, author, book_description, illustration_cover, year_publication FROM (SELECT *, LOCATE('" + searchField + "', " + fieldFind + ") as pos FROM books " + partSqlEducational + ") AS temp_table WHERE temp_table.pos>0 " + partSqlSorted + " LIMIT " + beginTakeBook + ", " + count + "")
+        // if (fieldSort)
+        //     return ("SELECT book_id, book_name, author, book_description, illustration_cover, year_publication FROM (SELECT *, LOCATE('" + searchField + "', " + fieldFind + ") as pos FROM books) AS temp_table WHERE temp_table.pos>0 ORDER BY " + fieldSort + " DESC LIMIT " + beginTakeBook + ", " + count + "")
+        // else
+        //     return ("SELECT book_id, book_name, author, book_description, illustration_cover, year_publication FROM (SELECT *, LOCATE('" + searchField + "', " + fieldFind + ") as pos FROM books) AS temp_table WHERE temp_table.pos>0 LIMIT " + beginTakeBook + ", " + count + "")
+    }
+    
     let totalCount = 0; //количество записей в базе данных
     let books = null; //найденные записи
-    console.log(req.query.searchField)
-    console.log(req.query.fieldFind)
     db.query(getConversionSqlCount(req.query.searchField, req.query.fieldFind), (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
@@ -199,6 +236,80 @@ exports.setBooksDiaryReader = (req, res) => {
             response.status(400, error, res)
         } else {
             response.status(200, results, res)
+        }
+    })
+}
+
+exports.setRating = (req, res) => {
+    const id = req.user[0].user_id;
+
+    //Ассинхронная функция полученияданных с БД
+    let getRatingBook = (res, book) => {
+        return new Promise(resolve => {
+            db.query("SELECT rating, count_rating FROM books WHERE book_id=" + book + "", (error, rows, fields) => {
+                if (error) {
+                    response.status(400, error, res)
+                } else {
+                    resolve(rows)
+                }
+            })
+          });
+    }
+    
+    //Обновляем данные нового рейтинга
+    const setRatingBook = (res, book, rating, count) => {
+        db.query("UPDATE books SET rating=" + rating + ", count_rating=" + count + " WHERE book_id=" + book + "", (error, rows, fields) => {
+            if (error) {
+                response.status(400, error, res)
+            } else {
+                return rows;
+            }
+        })
+    }
+
+    //Проверка на существование оценки от данного пользователя
+    db.query("SELECT * FROM users_rating WHERE user_id=" + id + " AND book_id=" + req.query.book + "", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else if (typeof rows !== 'undefined' && rows.length > 0) {
+            const currentRatingUser = rows[0].rating;
+            db.query("UPDATE users_rating SET rating='" + req.body.rating + "' WHERE user_id=" + id + " AND book_id=" + req.query.book + "", async (error, results) => {
+                if (error) {
+                    response.status(400, error, res)
+                } else {
+                    const dataRatingBook = await getRatingBook(res, req.query.book); //получаем данные с таблицы книги о текущем рейтинге
+                    const newRating = (parseInt(dataRatingBook[0].rating) + parseInt(req.body.rating) - parseInt(currentRatingUser))/parseInt(dataRatingBook[0].count_rating);
+                    setRatingBook(res, req.query.book, newRating, dataRatingBook[0].count_rating)
+                    response.status(200, newRating, res)
+                }
+            })
+        } else {
+            db.query("INSERT INTO `users_rating`(`user_id`, `book_id`, `rating`) VALUES('" + id + "', '" + req.query.book + "', '" + req.body.rating + "')", async (error, rows, fields) => {
+                if (error) {
+                    response.status(400, error, res)
+                } else {
+                    const dataRatingBook = await getRatingBook(res, req.query.book); //получаем данные с таблицы книги о текущем рейтинге
+                    const newRating = (parseInt(dataRatingBook[0].rating) + parseInt(req.body.rating))/(parseInt(dataRatingBook[0].count_rating) + 1);
+                    setRatingBook(res, req.query.book, newRating, parseInt(dataRatingBook[0].count_rating) + 1)
+                    response.status(200, newRating, res)
+                }
+            })
+        }
+    })
+}
+
+exports.getMyRating = (req, res) => {
+    const id = req.user[0].user_id;
+    let rating = 0;
+    console.log(req.query.book)
+    db.query("SELECT rating FROM users_rating WHERE user_id=" + id + " AND book_id=" + req.query.book + "", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else if (typeof rows !== 'undefined' && rows.length > 0) {
+            rating = rows[0].rating;
+            response.status(200, rating, res)
+        } else {
+            response.status(200, rating, res)
         }
     })
 }
