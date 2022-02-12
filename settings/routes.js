@@ -9,6 +9,7 @@ module.exports = (app, io) => {
     const messengerController = require('./../Controller/MessengerController')
     const bookController = require('./../Controller/BookController')
     const groupController = require('./../Controller/GroupController')
+    const adminController = require('./../Controller/AdminController')
 
     app.route('/auth/signup').post(usersController.signup)
     app.route('/auth/signin').post(usersController.signin)
@@ -18,7 +19,7 @@ module.exports = (app, io) => {
     app.route('/profile/friends').get(passport.authenticate('jwt', { session: false }), profileController.getFriends)
     app.route('/profile/groups').get(passport.authenticate('jwt', { session: false }), profileController.getFollowGroups)
     app.route('/profile/status').put(passport.authenticate('jwt', { session: false }), profileController.setNewStatus)
-    app.route('/profile/avatar').put(passport.authenticate('jwt', { session: false }), upload.single('image'), profileController.saveAvatar)
+    app.route('/profile/avatar').put(passport.authenticate('jwt', { session: false }), profileController.saveAvatar)
     app.route('/dialog/message/send').post(passport.authenticate('jwt', { session: false }), messengerController.sendNewMessage(io))
     app.route('/dialog/add').post(passport.authenticate('jwt', { session: false }), messengerController.addNewDialog(io))
     app.route('/dialog/all').get(passport.authenticate('jwt', { session: false }), messengerController.getAllDialogs)
@@ -53,5 +54,10 @@ module.exports = (app, io) => {
     app.route('/users/info').get(passport.authenticate('jwt', { session: false }), usersController.getFullInfoUser)
     app.route('/users/follow').get(passport.authenticate('jwt', { session: false }), usersController.followUser)
     app.route('/users/unfollow').get(passport.authenticate('jwt', { session: false }), usersController.unfollowUser)
+    app.route('/admin/users').get(adminController.getAllUsers)
+    app.route('/admin/books').get(adminController.getAllBooks)
+    app.route('/admin/comments').get(adminController.getAllComments)
+    app.route('/admin/comments/:commentId').get(adminController.getDataComment)
+    app.route('/admin/comments/:commentId').put(adminController.updateComment)
 }
 

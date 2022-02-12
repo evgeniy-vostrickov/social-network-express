@@ -2,6 +2,8 @@
 
 const response = require('./../response')
 const db = require('./../settings/db')
+const moment = require('moment')
+const fs = require('fs');
 
 
 exports.getFriends = (req, res) => {
@@ -43,16 +45,34 @@ exports.setNewStatus = (req, res) => {
 
 exports.saveAvatar = (req, res) => {
     const id = req.user[0].user_id;
-    // Меняем двойной обратный слэш на одинарный обычный в пути к файлу, что бы можно было записать в бд и считать в нормальной форме
-    req.file.path = req.file.path.replace("\\","/")
-    db.query("UPDATE users SET avatar='" + req.file.path + "' WHERE user_id=" + id + "", (error, results) => {
+    const data = req.body.file.replace(/^data:image\/\w+;base64,/, "");
+    const buf = Buffer.from(data, 'base64');
+    const date = moment().format('DDMMYYYY-HHmmss_SSS')
+    const pathAvatar = `uploads/${date}-newavatar.png`;
+    fs.writeFile(pathAvatar, buf, (err, result) => {
+        if(err) console.log('error', err);
+    });
+    db.query("UPDATE users SET avatar='" + pathAvatar + "' WHERE user_id=" + id + "", (error, results) => {
         if (error) {
             response.status(400, error, res)
         } else {
-            response.status(200, req.file.path, res)
+            response.status(200, pathAvatar, res)
         }
     })
 }
+
+// exports.saveAvatar = (req, res) => {
+//     const id = req.user[0].user_id;
+//     // Меняем двойной обратный слэш на одинарный обычный в пути к файлу, что бы можно было записать в бд и считать в нормальной форме
+//     req.file.path = req.file.path.replace("\\","/")
+//     db.query("UPDATE users SET avatar='" + req.file.path + "' WHERE user_id=" + id + "", (error, results) => {
+//         if (error) {
+//             response.status(400, error, res)
+//         } else {
+//             response.status(200, req.file.path, res)
+//         }
+//     })
+// }
 
 // exports.messenger = (socket) => {
 //     socket.on('chat message', (msg) => {
