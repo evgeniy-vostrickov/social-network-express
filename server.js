@@ -12,10 +12,10 @@ const bodyParser = require('body-parser')
 const passport = require('passport')
 
 //настройки bodyParser
-app.use(bodyParser.urlencoded({ extended: true }))
+app.use(bodyParser.urlencoded({limit: "50mb", extended: true, parameterLimit:50000}))
 app.use(cors())
 app.use('/uploads', express.static('uploads'))
-app.use(bodyParser.json())
+app.use(bodyParser.json({limit: '50mb'}))
 app.use(passport.initialize())
 require('./middleware/passport')(passport)
 

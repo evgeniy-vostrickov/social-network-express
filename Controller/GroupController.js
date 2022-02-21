@@ -3,6 +3,7 @@
 const response = require('./../response')
 const db = require('./../settings/db')
 const moment = require('moment')
+const fs = require('fs');
 
 exports.getFullInfoGroup = (req, res) => {
     const id = req.user[0].user_id;
@@ -18,7 +19,7 @@ exports.getFullInfoGroup = (req, res) => {
         if (error) {
             response.status(400, error, res)
         } else {
-            rows ? group.subscribe = true : group.subscribe = false
+            rows[0].count ? group.subscribe = true : group.subscribe = false
         }
     })
     db.query("SELECT COUNT(*) AS count FROM band_members WHERE group_id=" + req.query.group + "", (error, rows, fields) => {
@@ -81,12 +82,18 @@ exports.getAllEvent = (req, res) => {
 }
 
 exports.savePhotoGroup = (req, res) => {
-    req.file.path = req.file.path.replace("\\","/")
-    db.query("UPDATE group_network SET illustration_group='" + req.file.path + "' WHERE group_id=" + req.query.group + "", (error, results) => {
+    const data = req.body.file.replace(/^data:image\/\w+;base64,/, "");
+    const buf = Buffer.from(data, 'base64');
+    const date = moment().format('DDMMYYYY-HHmmss_SSS')
+    const pathAvatar = `uploads/${date}-newavatar.png`;
+    fs.writeFile(pathAvatar, buf, (err, result) => {
+        if(err) console.log('error', err);
+    });
+    db.query("UPDATE group_network SET illustration_group='" + pathAvatar + "' WHERE group_id=" + req.query.group + "", (error, results) => {
         if (error) {
             response.status(400, error, res)
         } else {
-            response.status(200, req.file.path, res)
+            response.status(200, pathAvatar, res)
         }
     })
 }

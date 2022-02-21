@@ -8,7 +8,7 @@ const fs = require('fs');
 
 exports.getFriends = (req, res) => {
     const id = req.user[0].user_id;
-    db.query("SELECT users.user_id, users.email, users.user_name, users.surname, users.direction_work_study, f.second_user_id, f.confirmation FROM (SELECT * FROM friends WHERE first_user_id=" + id + " OR second_user_id=" + id + ") AS f LEFT JOIN users ON (first_user_id=user_id AND user_id!=" + id + ") OR (second_user_id=user_id AND user_id!=" + id + ")", (error, rows, fields) => {
+    db.query("SELECT users.user_id, users.email, users.user_name, users.surname, users.avatar, users.direction_work_study, f.second_user_id, f.confirmation FROM (SELECT * FROM friends WHERE first_user_id=" + id + " OR second_user_id=" + id + ") AS f LEFT JOIN users ON (first_user_id=user_id AND user_id!=" + id + ") OR (second_user_id=user_id AND user_id!=" + id + ")", (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {
@@ -20,11 +20,20 @@ exports.getFriends = (req, res) => {
 
 exports.getFollowGroups = (req, res) => {
     const id = req.user[0].user_id;
-    db.query("SELECT gn.group_name, gn.city FROM band_members bm LEFT JOIN group_network gn ON bm.group_id = gn.group_id WHERE bm.user_id=" + id + "", (error, rows, fields) => {
+    let followGroup = null;
+    db.query("SELECT gn.group_id, group_name, illustration_group, city FROM (SELECT * FROM band_members WHERE user_id=" + id + ") AS temp_table LEFT JOIN group_network gn ON temp_table.group_id = gn.group_id", (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {
-            response.status(200, rows, res)
+            followGroup = rows;
+        }
+    })
+    db.query("SELECT group_id, group_name, illustration_group, city FROM group_network WHERE owner=" + id, (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            followGroup = [...followGroup, ...rows];
+            response.status(200, followGroup, res)
         }
     })
 }

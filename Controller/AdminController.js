@@ -1,7 +1,22 @@
 'use strict'
 
 const db = require('./../settings/db')
+const response = require('./../response')
 const moment = require('moment')
+
+exports.login = (req, res) => {
+    console.log(req.query)
+    db.query("SELECT id, username, password FROM admin WHERE username='" + req.query.username + "' AND password='" + req.query.password + "'", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            if (typeof rows !== 'undefined' && rows.length > 0)
+                response.status(200, "Авторизация прошла успешно!", res)
+            else
+                response.status(401, error, res)
+        }
+    })
+}
 
 const getTotalCount = (res, table) => {
     return new Promise(resolve => {
