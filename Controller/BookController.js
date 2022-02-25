@@ -187,11 +187,26 @@ exports.addNewComment = (req, res) => {
 }
 exports.addBookInDiaryReader = (req, res) => {
     const id = req.user[0].user_id;
-    db.query("INSERT INTO `diary_reader`(`user_id`, `book_id`, `type_book`) VALUES('" + id + "', '" + req.query.book + "', '" + req.body.sectionDiary + "')", (error, rows, fields) => {
+    db.query("SELECT * FROM diary_reader WHERE book_id=" + req.query.book + " AND user_id=" + id, (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {
-            response.status(200, rows, res)
+            if (typeof rows !== 'undefined' && rows.length > 0)
+                db.query("UPDATE diary_reader SET type_book='" + req.body.sectionDiary + "' WHERE user_id=" + id + " AND book_id=" + req.query.book + "", (error, results) => {
+                    if (error) {
+                        response.status(400, error, res)
+                    } else {
+                        response.status(200, req.body.sectionDiary, res)
+                    }
+                })
+            else
+                db.query("INSERT INTO `diary_reader`(`user_id`, `book_id`, `type_book`) VALUES('" + id + "', '" + req.query.book + "', '" + req.body.sectionDiary + "')", (error, rows, fields) => {
+                    if (error) {
+                        response.status(400, error, res)
+                    } else {
+                        response.status(200, req.body.sectionDiary, res)
+                    }
+                })
         }
     })
 }
@@ -396,6 +411,17 @@ exports.getLastQuotes = (req, res) => {
             response.status(400, error, res)
         } else {
             response.status(200, rows, res)
+        }
+    })
+}
+
+exports.checkInDiaryReader = (req, res) => {
+    const id = req.user[0].user_id;
+    db.query("SELECT type_book FROM diary_reader WHERE book_id=" + req.query.bookId + " AND user_id=" + id, (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            response.status(200, rows[0], res)
         }
     })
 }

@@ -40,7 +40,7 @@ exports.addNewDialog = (io) => {
 exports.getAllDialogs = (req, res) => {
     const id = req.user[0].user_id;
     //SELECT text_message FROM messages WHERE dialog_id=25 ORDER BY message_id DESC LIMIT 1
-    db.query("SELECT dialog_id, user_id, users.user_name as name, users.surname, users.avatar FROM (SELECT users_dialogs.first_user_id, users_dialogs.second_user_id, dialog_id FROM users_dialogs WHERE first_user_id=" + id + " OR second_user_id=" + id + ") AS f LEFT JOIN users ON (first_user_id=user_id AND user_id!=" + id + ") OR (second_user_id=user_id AND user_id!=" + id + ")", (error, rows, fields) => {
+    db.query("SELECT dialog_id, user_id, users.user_name as name, users.surname, users.status, users.avatar FROM (SELECT users_dialogs.first_user_id, users_dialogs.second_user_id, dialog_id FROM users_dialogs WHERE first_user_id=" + id + " OR second_user_id=" + id + ") AS f LEFT JOIN users ON (first_user_id=user_id AND user_id!=" + id + ") OR (second_user_id=user_id AND user_id!=" + id + ")", (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
             // console.log(error)

@@ -45,7 +45,13 @@ exports.signup = (req, res) => {
                 if (error) {
                     response.status(400, error, res)
                 } else {
-                    response.status(200, { message: `Регистрация прошла успешно.`, results }, res)
+                    // response.status(200, { message: `Регистрация прошла успешно.`, results }, res)
+                    const token = jwt.sign({
+                        userId: results.insertId,
+                        email: email
+                    }, config.jwt, { expiresIn: 120 * 60 })
+
+                    response.status(200, { token: `Bearer ${token}` }, res)
                 }
             })
         }
@@ -84,7 +90,7 @@ exports.signin = (req, res) => {
 
 exports.me = (req, res) => {
     // console.log(req.user[0].user_id)
-    db.query("SELECT user_id, user_name, surname, email, status, avatar, date_births, place_work_study, direction_work_study FROM users WHERE user_id=" + req.user[0].user_id + "", (error, rows, fields) => {
+    db.query("SELECT user_id, user_name, surname, email, status, avatar, DATE_FORMAT(date_births, '%d.%m.%Y') AS date_births, place_work_study, direction_work_study FROM users WHERE user_id=" + req.user[0].user_id + "", (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {
@@ -173,7 +179,7 @@ exports.getFullInfoUser = (req, res) => {
             groups = rows;
         }
     })
-    db.query("SELECT user_name, surname, email, status, avatar, date_births, place_work_study, direction_work_study FROM users WHERE user_id=" + id + "", (error, rows, fields) => {
+    db.query("SELECT user_name, surname, email, status, avatar, DATE_FORMAT(date_births, '%d.%m.%Y'), place_work_study, direction_work_study FROM users WHERE user_id=" + id + "", (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {

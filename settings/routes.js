@@ -18,8 +18,9 @@ module.exports = (app, io) => {
     app.route('/users').get(passport.authenticate('jwt', { session: false }), usersController.getAllUsers) //передача данных по токену
     app.route('/profile/friends').get(passport.authenticate('jwt', { session: false }), profileController.getFriends)
     app.route('/profile/groups').get(passport.authenticate('jwt', { session: false }), profileController.getFollowGroups)
-    app.route('/profile/status').put(passport.authenticate('jwt', { session: false }), profileController.setNewStatus)
+    app.route('/profile/personal').put(passport.authenticate('jwt', { session: false }), profileController.setPersonalDataUser)
     app.route('/profile/avatar').put(passport.authenticate('jwt', { session: false }), profileController.saveAvatar)
+    app.route('/profile/like').get(passport.authenticate('jwt', { session: false }), profileController.getDataLike)
     app.route('/dialog/message/send').post(passport.authenticate('jwt', { session: false }), messengerController.sendNewMessage(io))
     app.route('/dialog/add').post(passport.authenticate('jwt', { session: false }), messengerController.addNewDialog(io))
     app.route('/dialog/all').get(passport.authenticate('jwt', { session: false }), messengerController.getAllDialogs)
@@ -40,6 +41,7 @@ module.exports = (app, io) => {
     app.route('/book/rating').post(passport.authenticate('jwt', { session: false }), bookController.setRating)
     app.route('/book/rating').get(passport.authenticate('jwt', { session: false }), bookController.getMyRating)
     app.route('/book/quotes').get(passport.authenticate('jwt', { session: false }), bookController.getLastQuotes)
+    app.route('/book/check/diary').get(passport.authenticate('jwt', { session: false }), bookController.checkInDiaryReader)
     app.route('/group/info/full').get(passport.authenticate('jwt', { session: false }), groupController.getFullInfoGroup)
     app.route('/group/subscribe').post(passport.authenticate('jwt', { session: false }), groupController.joinGroup)
     app.route('/group/unsubscribe').post(passport.authenticate('jwt', { session: false }), groupController.leaveGroup)

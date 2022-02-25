@@ -38,15 +38,15 @@ exports.getFollowGroups = (req, res) => {
     })
 }
 
-exports.setNewStatus = (req, res) => {
+exports.setPersonalDataUser = (req, res) => {
     // console.log(req.user[0].user_id)
     const id = req.user[0].user_id;
-    db.query("UPDATE users SET status='" + req.body.status + "' WHERE user_id=" + id + "", (error, results) => {
+    db.query("UPDATE users SET " + req.query.field + "='" + req.body.newData + "' WHERE user_id=" + id + "", (error, results) => {
         if (error) {
             response.status(400, error, res)
             // console.log(error)
         } else {
-            response.status(200, { message: `Статус успешно изменен.`, results }, res)
+            response.status(200, { message: `Персональные данные успешно изменены.`, results }, res)
             // console.log(rows)
         }
     })
@@ -70,21 +70,31 @@ exports.saveAvatar = (req, res) => {
     })
 }
 
-// exports.saveAvatar = (req, res) => {
-//     const id = req.user[0].user_id;
-//     // Меняем двойной обратный слэш на одинарный обычный в пути к файлу, что бы можно было записать в бд и считать в нормальной форме
-//     req.file.path = req.file.path.replace("\\","/")
-//     db.query("UPDATE users SET avatar='" + req.file.path + "' WHERE user_id=" + id + "", (error, results) => {
-//         if (error) {
-//             response.status(400, error, res)
-//         } else {
-//             response.status(200, req.file.path, res)
-//         }
-//     })
-// }
-
-// exports.messenger = (socket) => {
-//     socket.on('chat message', (msg) => {
-//         console.log('message: ' + msg);
-//     });
-// };
+exports.getDataLike = (req, res) => {
+    const id = req.query.id || req.user[0].user_id;
+    let likeAuthors = null;
+    let likeGenres = null;
+    let likeBooks = null;
+    db.query("SELECT COUNT(*) AS count, author FROM diary_reader LEFT JOIN books b ON diary_reader.book_id = b.book_id WHERE user_id=" + id + " GROUP BY author ORDER BY count DESC LIMIT 3", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            likeAuthors = rows;
+        }
+    })
+    db.query("SELECT COUNT(*) AS count, genre_name FROM diary_reader dr LEFT JOIN (SELECT b.book_id, g.genre_name FROM books b LEFT JOIN genres g ON b.genre_id = g.genre_id) AS temp_table ON temp_table.book_id=dr.book_id WHERE user_id=" + id + " GROUP BY  temp_table.genre_name ORDER BY count DESC LIMIT 3", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            likeGenres = rows;
+        }
+    })
+    db.query("SELECT b.book_id, b.book_name, b.author, b.illustration_cover FROM (SELECT * FROM diary_reader WHERE user_id=" + id + " AND type_book='Прочитанные книги' ORDER BY book_id DESC LIMIT 3) AS temp_table LEFT JOIN books b ON b.book_id=temp_table.book_id", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            likeBooks = rows;
+            response.status(200, {likeAuthors, likeGenres, likeBooks}, res)
+        }
+    })
+}

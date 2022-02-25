@@ -22,11 +22,12 @@ exports.getFullInfoGroup = (req, res) => {
             rows[0].count ? group.subscribe = true : group.subscribe = false
         }
     })
-    db.query("SELECT COUNT(*) AS count FROM band_members WHERE group_id=" + req.query.group + "", (error, rows, fields) => {
+    db.query("SELECT u.user_id, email, user_name, surname, avatar, place_work_study FROM (SELECT * FROM band_members WHERE group_id=" + req.query.group + ") AS temp_table LEFT JOIN users u ON temp_table.user_id=u.user_id", (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {
-            group.number_participants = rows[0].count;
+            group.participantsItems = rows;
+            group.number_participants = rows.length;
             response.status(200, group, res)
         }
     })
