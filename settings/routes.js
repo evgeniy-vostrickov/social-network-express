@@ -59,8 +59,16 @@ module.exports = (app, io) => {
     app.route('/admin/login').get(adminController.login)
     app.route('/admin/users').get(adminController.getAllUsers)
     app.route('/admin/books').get(adminController.getAllBooks)
+    app.route('/admin/books').post(adminController.createBook)
     app.route('/admin/comments').get(adminController.getAllComments)
+    app.route('/admin/genres').get(adminController.getAllGenres)
+    app.route('/admin/publish').get(adminController.getAllPublish)
+    app.route('/admin/languages').get(adminController.getAllLanguages)
     app.route('/admin/comments/:commentId').get(adminController.getDataComment)
     app.route('/admin/comments/:commentId').put(adminController.updateComment)
+    app.route('/admin/comments/:commentId').delete(adminController.deleteComment)
+    app.route('/admin/books/:bookId').get(adminController.getDataBook)
+    app.route('/admin/books/:bookId').put(adminController.updateBook)
+    app.route('/admin/books/:bookId').delete(adminController.deleteBook)
 }
 

@@ -3,6 +3,7 @@
 const db = require('./../settings/db')
 const response = require('./../response')
 const moment = require('moment')
+const fs = require('fs');
 
 exports.login = (req, res) => {
     console.log(req.query)
@@ -45,7 +46,7 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getAllBooks = async (req, res) => {
     const totalCount = await getTotalCount(res, "books");
-    db.query("SELECT book_id AS id, book_name, author, year_publication, age_restrictions, type_book FROM books", (error, rows, fields) => {
+    db.query("SELECT book_id AS id, book_name, author, year_publication, book_description, age_restrictions, type_book, genre_id FROM books", (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {
@@ -69,8 +70,47 @@ exports.getAllComments = async (req, res) => {
     })
 }
 
-exports.getDataComment = async (req, res) => {
-    let commentId = req.params["commentId"];
+exports.getAllGenres = async (req, res) => {
+    const totalCount = await getTotalCount(res, "genres");
+    db.query("SELECT genre_id AS id, genre_name FROM genres", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            res.set('Access-Control-Expose-Headers', "X-Total-Count");
+            res.set('X-Total-Count', totalCount);
+            res.json(rows)
+        }
+    })
+}
+
+exports.getAllPublish = async (req, res) => {
+    const totalCount = await getTotalCount(res, "publish");
+    db.query("SELECT publish_id AS id, publish_name FROM publish", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            res.set('Access-Control-Expose-Headers', "X-Total-Count");
+            res.set('X-Total-Count', totalCount);
+            res.json(rows)
+        }
+    })
+}
+
+exports.getAllLanguages = async (req, res) => {
+    const totalCount = await getTotalCount(res, "languages");
+    db.query("SELECT language_id AS id, language_name FROM languages", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            res.set('Access-Control-Expose-Headers', "X-Total-Count");
+            res.set('X-Total-Count', totalCount);
+            res.json(rows)
+        }
+    })
+}
+
+exports.getDataComment = (req, res) => {
+    const commentId = req.params["commentId"];
     db.query("SELECT comment_id AS id, book_id, user_id, comment_type, comment_text, date FROM comments WHERE comment_id=" + commentId, (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
@@ -80,7 +120,7 @@ exports.getDataComment = async (req, res) => {
     })
 }
 
-exports.updateComment = async (req, res) => {
+exports.updateComment = (req, res) => {
     const commentId = req.params["commentId"];
     console.log(req.body)
     db.query("UPDATE comments SET book_id=" + req.body.book_id + ", comment_type='" + req.body.comment_type + "', comment_text='" + req.body.comment_text + "', date='" + moment(req.body.date).format('YYYY-MM-DD') + "' WHERE comment_id=" + commentId, (error, rows, fields) => {
@@ -94,6 +134,86 @@ exports.updateComment = async (req, res) => {
                     res.json(rows[0])
                 }
             })
+        }
+    })
+}
+
+exports.deleteComment = (req, res) => {
+    const commentId = req.params["commentId"];
+    // console.log(req.body)
+    db.query("DELETE FROM comments WHERE comment_id=" + commentId, (error, rows, fields) => {
+        if (error) {
+            console.log(error)
+        } else {
+            res.json({'id': commentId})
+        }
+    })
+}
+
+exports.getDataBook = (req, res) => {
+    const bookId = req.params["bookId"];
+    db.query("SELECT book_id AS id, book_name, author, year_publication, book_description, age_restrictions, type_book, genre_id, publish_id, language_id FROM books WHERE book_id=" + bookId, (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            res.json(rows[0])
+        }
+    })
+}
+
+exports.updateBook = (req, res) => {
+    const bookId = req.params["bookId"];
+    // console.log(req.body)
+    db.query("UPDATE books SET book_name='" + req.body.book_name + "', author='" + req.body.author + "', year_publication='" + req.body.year_publication + "', book_description='" + req.body.book_description + "', age_restrictions='" + req.body.age_restrictions + "', type_book='" + req.body.type_book + "', genre_id='" + req.body.genre_id + "', publish_id='" + req.body.publish_id + "', language_id='" + req.body.language_id + "' WHERE book_id=" + bookId, (error, rows, fields) => {
+        if (error) {
+            console.log(error)
+        } else {
+            db.query("SELECT book_id AS id, book_name, author, year_publication, book_description, age_restrictions, type_book FROM books WHERE book_id=" + bookId, (error, rows, fields) => {
+                if (error) {
+                    response.status(400, error, res)
+                } else {
+                    res.json(rows[0])
+                }
+            })
+        }
+    })
+}
+
+exports.createBook = (req, res) => {
+    const bookId = req.params["bookId"];
+    // console.log(req.body)
+
+    const data = req.body.myFile.src.replace(/^data:image\/\w+;base64,/, "");
+    const buf = Buffer.from(data, 'base64');
+    const date = moment().format('DDMMYYYY-HHmmss_SSS')
+    const pathIllustrationCover = `uploads/${date}-illustration.png`;
+    fs.writeFile(pathIllustrationCover, buf, (err, result) => {
+        if(err) console.log('error', err);
+    });
+
+    db.query("INSERT INTO `books`(`book_name`, `author`, `year_publication`, `language_id`, `book_description`, `illustration_cover`, `genre_id`, `publish_id`, `age_restrictions`) VALUES('" + req.body.book_name + "', '" + req.body.author + "', '" + req.body.year_publication + "', '" + req.body.language_id + "', '" + req.body.book_description + "', '" + pathIllustrationCover + "', '" + req.body.genre_id + "', '" + req.body.publish_id + "', '" + req.body.age_restrictions + "')", (error, rows, fields) => {
+        if (error) {
+            console.log(error)
+        } else {
+            db.query("SELECT book_id AS id, book_name, author, year_publication, book_description, age_restrictions, type_book FROM books WHERE book_id=" + rows.insertId, (error, rows, fields) => {
+                if (error) {
+                    response.status(400, error, res)
+                } else {
+                    res.json(rows[0])
+                }
+            })
+        }
+    })
+}
+
+exports.deleteBook = (req, res) => {
+    const bookId = req.params["bookId"];
+    // console.log(req.body)
+    db.query("DELETE FROM books WHERE book_id=" + bookId, (error, rows, fields) => {
+        if (error) {
+            console.log(error)
+        } else {
+            res.json({'id': bookId})
         }
     })
 }
