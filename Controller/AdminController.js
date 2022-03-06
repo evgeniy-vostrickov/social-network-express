@@ -70,6 +70,19 @@ exports.getAllComments = async (req, res) => {
     })
 }
 
+exports.getAllGroups = async (req, res) => {
+    const totalCount = await getTotalCount(res, "group_network");
+    db.query("SELECT group_id AS id, owner, group_name, group_description, city FROM group_network", (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            res.set('Access-Control-Expose-Headers', "X-Total-Count");
+            res.set('X-Total-Count', totalCount);
+            res.json(rows)
+        }
+    })
+}
+
 exports.getAllGenres = async (req, res) => {
     const totalCount = await getTotalCount(res, "genres");
     db.query("SELECT genre_id AS id, genre_name FROM genres", (error, rows, fields) => {
@@ -214,6 +227,58 @@ exports.deleteBook = (req, res) => {
             console.log(error)
         } else {
             res.json({'id': bookId})
+        }
+    })
+}
+
+exports.deleteGroup = (req, res) => {
+    const groupId = req.params["groupId"];
+    // console.log(req.body)
+    db.query("DELETE FROM group_network WHERE group_id=" + groupId, (error, rows, fields) => {
+        if (error) {
+            console.log(error)
+        } else {
+            res.json({'id': groupId})
+        }
+    })
+}
+
+exports.getDataUser = (req, res) => {
+    const userId = req.params["userId"];
+    db.query("SELECT user_id AS id, email, user_name, surname, status, place_work_study, direction_work_study FROM users WHERE user_id=" + userId, (error, rows, fields) => {
+        if (error) {
+            response.status(400, error, res)
+        } else {
+            res.json(rows[0])
+        }
+    })
+}
+
+exports.updateUser = (req, res) => {
+    const userId = req.params["userId"];
+    console.log(req.body)
+    db.query("UPDATE users SET user_id=" + req.body.id + ", email='" + req.body.email + "', user_name='" + req.body.user_name + "', surname='" + req.body.surname + "', status='" + req.body.status + "', place_work_study='" + req.body.place_work_study + "', direction_work_study='" + req.body.direction_work_study + "' WHERE user_id=" + userId, (error, rows, fields) => {
+        if (error) {
+            console.log(error)
+        } else {
+            db.query("SELECT user_id AS id, email, user_name, surname, status, place_work_study, direction_work_study FROM users WHERE user_id=" + userId, (error, rows, fields) => {
+                if (error) {
+                    response.status(400, error, res)
+                } else {
+                    res.json(rows[0])
+                }
+            })
+        }
+    })
+}
+
+exports.deleteUser = (req, res) => {
+    const userId = req.params["userId"];
+    db.query("DELETE FROM users WHERE user_id=" + userId, (error, rows, fields) => {
+        if (error) {
+            console.log(error)
+        } else {
+            res.json({'id': userId})
         }
     })
 }

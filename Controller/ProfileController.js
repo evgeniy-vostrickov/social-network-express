@@ -57,7 +57,7 @@ exports.saveAvatar = (req, res) => {
     const data = req.body.file.replace(/^data:image\/\w+;base64,/, "");
     const buf = Buffer.from(data, 'base64');
     const date = moment().format('DDMMYYYY-HHmmss_SSS')
-    const pathAvatar = `uploads/${date}-newavatar.png`;
+    const pathAvatar = `uploads/${date}-newavatar`;
     fs.writeFile(pathAvatar, buf, (err, result) => {
         if(err) console.log('error', err);
     });

@@ -2,6 +2,8 @@
 
 const response = require('./../response')
 const db = require('./../settings/db')
+const moment = require('moment')
+const fs = require('fs');
 
 exports.addNewDialog = (io) => {
     return (req, res) => {
@@ -13,7 +15,7 @@ exports.addNewDialog = (io) => {
             if (error) {
                 response.status(400, error, res)
             } else if (typeof rows !== 'undefined' && rows.length > 0) {
-                response.status(302, {dialogExists: "Диалог с данным пользователем уже существует, перейдите в сообщения!"}, res)
+                response.status(302, { dialogExists: "Диалог с данным пользователем уже существует, перейдите в сообщения!" }, res)
             } else {
                 db.query("INSERT INTO `users_dialogs`(`first_user_id`, `second_user_id`) VALUES('" + id + "', '" + user_id + "')", (error, results) => {
                     if (error) {
@@ -25,8 +27,8 @@ exports.addNewDialog = (io) => {
                                 response.status(400, error, res)
                                 // console.log(error)
                             } else {
-                                io.sockets.in(user_id).emit('CLIENT:NEW_MESSAGE', { dialogId, message: {author: id, message_id: 0, text_message: textMessage, timestamp} });
-                                io.sockets.in(id).emit('CLIENT:NEW_MESSAGE', { dialogId, message: {author: id, message_id: 0, text_message: textMessage, timestamp} });
+                                io.sockets.in(user_id).emit('CLIENT:NEW_MESSAGE', { dialogId, message: { author: id, message_id: 0, text_message: textMessage, timestamp } });
+                                io.sockets.in(id).emit('CLIENT:NEW_MESSAGE', { dialogId, message: { author: id, message_id: 0, text_message: textMessage, timestamp } });
                                 response.status(200, { author: id, message_id: 0, text_message: textMessage, timestamp: timestamp }, res)
                             }
                         })
@@ -59,16 +61,37 @@ exports.sendNewMessage = (io) => {
         const userIdRecipient = req.body.userIdRecipient;
         const timestamp = req.body.timestamp;
         const id = req.user[0].user_id;
-        db.query("INSERT INTO `messages`(`dialog_id`, `message_id`, `user_id`, `text_message`, `timestamp`) VALUES('" + dialogId + "', '" + numMessage + "', '" + id + "', '" + textMessage + "', '" + timestamp + "')", (error, results) => {
-            if (error) {
-                response.status(400, error, res)
-                // console.log(error)
-            } else {
-                io.sockets.in(userIdRecipient).emit('CLIENT:NEW_MESSAGE', { dialogId, message: {author: id, message_id: numMessage, text_message: textMessage, timestamp} });
-                io.sockets.in(id).emit('CLIENT:NEW_MESSAGE', { dialogId, message: {author: id, message_id: numMessage, text_message: textMessage, timestamp} });
-                response.status(200, { author: id, message_id: numMessage, text_message: textMessage, timestamp: timestamp }, res)
-            }
-        })
+        // console.log(req.body)
+        if (req.query.image != "false") {
+            console.log("Сохраняем картинку в бд")
+            const date = moment().format('DDMMYYYY-HHmmss_SSS');
+            const pathAvatar = `uploads/message-${date}.${req.query.image}`;
+            const buffer = Buffer.from(textMessage, 'base64'); //Метод Buffer.from() создает новый буфер, заполненный указанной строкой, массивом или буфером в указанной кодировки
+            fs.writeFile(pathAvatar, buffer, (err, result) => {
+                if (err) console.log('error', err);
+            });
+            db.query("INSERT INTO `messages`(`dialog_id`, `message_id`, `user_id`, `text_message`, `timestamp`) VALUES('" + dialogId + "', '" + numMessage + "', '" + id + "', '" + pathAvatar + "', '" + timestamp + "')", (error, results) => {
+                if (error) {
+                    response.status(400, error, res)
+                    // console.log(error)
+                } else {
+                    io.sockets.in(userIdRecipient).emit('CLIENT:NEW_MESSAGE', { dialogId, message: { author: id, message_id: numMessage, text_message: pathAvatar, timestamp } });
+                    io.sockets.in(id).emit('CLIENT:NEW_MESSAGE', { dialogId, message: { author: id, message_id: numMessage, text_message: pathAvatar, timestamp } });
+                    response.status(200, { author: id, message_id: numMessage, text_message: pathAvatar, timestamp: timestamp }, res)
+                }
+            })
+        }
+        else
+            db.query("INSERT INTO `messages`(`dialog_id`, `message_id`, `user_id`, `text_message`, `timestamp`) VALUES('" + dialogId + "', '" + numMessage + "', '" + id + "', '" + textMessage + "', '" + timestamp + "')", (error, results) => {
+                if (error) {
+                    response.status(400, error, res)
+                    // console.log(error)
+                } else {
+                    io.sockets.in(userIdRecipient).emit('CLIENT:NEW_MESSAGE', { dialogId, message: { author: id, message_id: numMessage, text_message: textMessage, timestamp } });
+                    io.sockets.in(id).emit('CLIENT:NEW_MESSAGE', { dialogId, message: { author: id, message_id: numMessage, text_message: textMessage, timestamp } });
+                    response.status(200, { author: id, message_id: numMessage, text_message: textMessage, timestamp: timestamp }, res)
+                }
+            })
     }
 }
 

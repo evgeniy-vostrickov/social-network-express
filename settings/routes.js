@@ -40,7 +40,7 @@ module.exports = (app, io) => {
     app.route('/book/diary').post(passport.authenticate('jwt', { session: false }), bookController.setBooksDiaryReader)
     app.route('/book/rating').post(passport.authenticate('jwt', { session: false }), bookController.setRating)
     app.route('/book/rating').get(passport.authenticate('jwt', { session: false }), bookController.getMyRating)
-    app.route('/book/quotes').get(passport.authenticate('jwt', { session: false }), bookController.getLastQuotes)
+    app.route('/book/quotes').get(bookController.getLastQuotes)
     app.route('/book/check/diary').get(passport.authenticate('jwt', { session: false }), bookController.checkInDiaryReader)
     app.route('/group/info/full').get(passport.authenticate('jwt', { session: false }), groupController.getFullInfoGroup)
     app.route('/group/subscribe').post(passport.authenticate('jwt', { session: false }), groupController.joinGroup)
@@ -61,6 +61,8 @@ module.exports = (app, io) => {
     app.route('/admin/books').get(adminController.getAllBooks)
     app.route('/admin/books').post(adminController.createBook)
     app.route('/admin/comments').get(adminController.getAllComments)
+    app.route('/admin/groups').get(adminController.getAllGroups)
+    app.route('/admin/groups').delete(adminController.deleteGroup)
     app.route('/admin/genres').get(adminController.getAllGenres)
     app.route('/admin/publish').get(adminController.getAllPublish)
     app.route('/admin/languages').get(adminController.getAllLanguages)
@@ -70,5 +72,7 @@ module.exports = (app, io) => {
     app.route('/admin/books/:bookId').get(adminController.getDataBook)
     app.route('/admin/books/:bookId').put(adminController.updateBook)
     app.route('/admin/books/:bookId').delete(adminController.deleteBook)
+    app.route('/admin/users/:userId').get(adminController.getDataUser)
+    app.route('/admin/users/:userId').put(adminController.updateUser)
 }
 
