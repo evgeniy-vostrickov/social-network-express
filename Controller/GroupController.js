@@ -83,10 +83,11 @@ exports.getAllEvent = (req, res) => {
 }
 
 exports.savePhotoGroup = (req, res) => {
+    const formatImage = req.body.file.substring("data:image/".length, req.body.file.indexOf(";base64,"));
     const data = req.body.file.replace(/^data:image\/\w+;base64,/, "");
     const buf = Buffer.from(data, 'base64');
     const date = moment().format('DDMMYYYY-HHmmss_SSS')
-    const pathAvatar = `uploads/${date}-newavatar.png`;
+    const pathAvatar = `uploads/${date}-newavatargroup.${formatImage}`;
     fs.writeFile(pathAvatar, buf, (err, result) => {
         if(err) console.log('error', err);
     });

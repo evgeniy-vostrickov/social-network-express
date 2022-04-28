@@ -35,7 +35,7 @@ module.exports = (app, io) => {
     app.route('/book/comments').post(passport.authenticate('jwt', { session: false }), bookController.addNewComment)
     app.route('/book/diary/add').post(passport.authenticate('jwt', { session: false }), bookController.addBookInDiaryReader)
     app.route('/book/all').get(bookController.getAllBooks)
-    app.route('/book/find').get(bookController.foundBooks)
+    // app.route('/book/find').get(bookController.foundBooks)
     app.route('/book/diary').get(passport.authenticate('jwt', { session: false }), bookController.getBooksDiaryReader)
     app.route('/book/diary').post(passport.authenticate('jwt', { session: false }), bookController.setBooksDiaryReader)
     app.route('/book/rating').post(passport.authenticate('jwt', { session: false }), bookController.setRating)

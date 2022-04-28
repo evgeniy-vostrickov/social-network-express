@@ -216,6 +216,8 @@ exports.getAllBooks = (req, res) => {
     const isSorted = req.query.isSorted;
     const fieldSort = req.query.fieldSort;
     const typeBook = req.query.typeBook;
+    const fieldFind = req.query.fieldFind;
+    const searchField = req.query.searchField;
     const beginTakeBook = (parseInt(page) - 1) * parseInt(count);
     let totalCount = 0; //количество записей в базе данных
 
@@ -223,14 +225,16 @@ exports.getAllBooks = (req, res) => {
 
     const partSqlSorted = isSorted === "true" ? " ORDER BY " + fieldSort + " DESC " : "";
     const partSqlEducational = typeBook != "undefined" ? " WHERE type_book='" + typeBook + "' " : "";
+    let partSqlFound = "";
+    if (typeBook == "undefined" & searchField != "")
+        partSqlFound = " WHERE " + fieldFind + " LIKE '%" + searchField + "%' ";
+    else if (typeBook != "undefined" & searchField != "")
+        partSqlFound = "AND " + fieldFind + " LIKE '%" + searchField + "%' ";
 
-    const sql = "SELECT book_id, book_name, author, book_description, illustration_cover, year_publication FROM books " + partSqlEducational + partSqlSorted + " LIMIT " + beginTakeBook + ", " + count + "";
+    const sql = "SELECT book_id, book_name, author, book_description, illustration_cover, year_publication FROM books " + partSqlEducational + partSqlFound + partSqlSorted + " LIMIT " + beginTakeBook + ", " + count + "";
     console.log(sql)
-    // if (isSorted === "true")
-    //     sql = "SELECT book_id, book_name, author, book_description, illustration_cover, year_publication FROM books ORDER BY " + fieldSort + " DESC LIMIT " + beginTakeBook + ", " + count + "";
-    // else
-    //     sql = "SELECT book_id, book_name, author, book_description, illustration_cover, year_publication FROM books LIMIT " + beginTakeBook + ", " + count + "";
-    db.query("SELECT COUNT(*) AS totalCount FROM books " + partSqlEducational + "", (error, rows, fields) => {
+
+    db.query("SELECT COUNT(*) AS totalCount FROM books " + partSqlEducational + partSqlFound + "", (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {
@@ -245,65 +249,6 @@ exports.getAllBooks = (req, res) => {
             response.status(200, { books, totalCount }, res)
         }
     })
-}
-exports.foundBooks = (req, res) => {
-    const count = req.query.count;
-    const page = req.query.page;
-    const isSorted = req.query.isSorted;
-    const fieldSort = req.query.fieldSort;
-    const typeBook = req.query.typeBook;
-    const beginTakeBook = (parseInt(page) - 1) * parseInt(count);
-
-    const partSqlSorted = isSorted === "true" ? " ORDER BY " + fieldSort + " DESC " : "";
-    const partSqlEducational = typeBook != "undefined" ? " WHERE type_book='" + typeBook + "' " : "";
-
-    const getConversionSqlCount = (searchField, fieldFind) => ("SELECT COUNT(*) AS totalCount FROM (SELECT *, LOCATE('" + searchField + "', " + fieldFind + ") as pos FROM books " + partSqlEducational + ") AS temp_table WHERE temp_table.pos>0 ")
-    const getConversionSqlFind = (searchField, fieldFind) => {
-        return ("SELECT book_id, book_name, author, book_description, illustration_cover, year_publication FROM (SELECT *, LOCATE('" + searchField + "', " + fieldFind + ") as pos FROM books " + partSqlEducational + ") AS temp_table WHERE temp_table.pos>0 " + partSqlSorted + " LIMIT " + beginTakeBook + ", " + count + "")
-        // if (fieldSort)
-        //     return ("SELECT book_id, book_name, author, book_description, illustration_cover, year_publication FROM (SELECT *, LOCATE('" + searchField + "', " + fieldFind + ") as pos FROM books) AS temp_table WHERE temp_table.pos>0 ORDER BY " + fieldSort + " DESC LIMIT " + beginTakeBook + ", " + count + "")
-        // else
-        //     return ("SELECT book_id, book_name, author, book_description, illustration_cover, year_publication FROM (SELECT *, LOCATE('" + searchField + "', " + fieldFind + ") as pos FROM books) AS temp_table WHERE temp_table.pos>0 LIMIT " + beginTakeBook + ", " + count + "")
-    }
-
-    let totalCount = 0; //количество записей в базе данных
-    let books = null; //найденные записи
-    db.query(getConversionSqlCount(req.query.searchField, req.query.fieldFind), (error, rows, fields) => {
-        if (error) {
-            response.status(400, error, res)
-        } else {
-            totalCount = rows[0].totalCount;
-        }
-    })
-    db.query(getConversionSqlFind(req.query.searchField, req.query.fieldFind), (error, rows, fields) => {
-        if (error) {
-            response.status(400, error, res)
-        } else {
-            books = rows;
-            response.status(200, { books, totalCount }, res)
-        }
-    })
-    // if (BooksFoundName.length < 3)
-    //     db.query(sql, 'author', (error, rows, fields) => {
-    //         if (error) {
-    //             response.status(400, error, res)
-    //         } else {
-    //             BooksFoundAuthor = rows;
-    //         }
-    //     })
-    // else
-    //     response.status(200, { BooksFoundName, totalCount }, res)
-    // if (BooksFoundAuthor.length < 3)
-    //     db.query(sql, 'book_description', (error, rows, fields) => {
-    //         if (error) {
-    //             response.status(400, error, res)
-    //         } else {
-    //             BooksFoundDescription = rows;
-    //             response.status(200, { BooksFoundName, BooksFoundAuthor, BooksFoundDescription, totalCount }, res)
-    //         }
-    //     })
-    // else
-    //     response.status(200, { BooksFoundName, BooksFoundAuthor, totalCount }, res)
 }
 
 exports.getBooksDiaryReader = (req, res) => {

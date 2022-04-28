@@ -33,7 +33,16 @@ const getTotalCount = (res, table) => {
 
 exports.getAllUsers = async (req, res) => {
     const totalCount = await getTotalCount(res, "users");
-    db.query("SELECT user_id AS id, email, user_name, surname, status, date_births, place_work_study, direction_work_study FROM users", (error, rows, fields) => {
+    let dopParametr = "";
+    if (req.query._start) {
+        const start = req.query._start;
+        const end = req.query._end;
+        const order = req.query._order;
+        const sort = req.query._sort;
+        const count = parseInt(end) - parseInt(start);
+        dopParametr = "ORDER BY " + sort + " " + order + " LIMIT " + start + ", " + count + "";
+    }
+    db.query("SELECT user_id AS id, email, user_name, surname, status, date_births, place_work_study, direction_work_study FROM users " + dopParametr, (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {
@@ -46,7 +55,16 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getAllBooks = async (req, res) => {
     const totalCount = await getTotalCount(res, "books");
-    db.query("SELECT book_id AS id, book_name, author, year_publication, book_description, age_restrictions, type_book, genre_id FROM books", (error, rows, fields) => {
+    let dopParametr = "";
+    if (req.query._start) {
+        const start = req.query._start;
+        const end = req.query._end;
+        const order = req.query._order;
+        const sort = req.query._sort;
+        const count = parseInt(end) - parseInt(start);
+        dopParametr = "ORDER BY " + sort + " " + order + " LIMIT " + start + ", " + count + "";
+    }
+    db.query("SELECT book_id AS id, book_name, author, year_publication, book_description, age_restrictions, type_book, genre_id FROM books " + dopParametr, (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {
@@ -59,7 +77,16 @@ exports.getAllBooks = async (req, res) => {
 
 exports.getAllComments = async (req, res) => {
     const totalCount = await getTotalCount(res, "comments");
-    db.query("SELECT comment_id AS id, book_id, user_id, comment_type, comment_text, date FROM comments", (error, rows, fields) => {
+    let dopParametr = "";
+    if (req.query._start) {
+        const start = req.query._start;
+        const end = req.query._end;
+        const order = req.query._order;
+        const sort = req.query._sort;
+        const count = parseInt(end) - parseInt(start);
+        dopParametr = "ORDER BY " + sort + " " + order + " LIMIT " + start + ", " + count + "";
+    }
+    db.query("SELECT comment_id AS id, book_id, user_id, comment_type, comment_text, date FROM comments " + dopParametr, (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {
@@ -72,7 +99,16 @@ exports.getAllComments = async (req, res) => {
 
 exports.getAllGroups = async (req, res) => {
     const totalCount = await getTotalCount(res, "group_network");
-    db.query("SELECT group_id AS id, owner, group_name, group_description, city FROM group_network", (error, rows, fields) => {
+    let dopParametr = "";
+    if (req.query._start) {
+        const start = req.query._start;
+        const end = req.query._end;
+        const order = req.query._order;
+        const sort = req.query._sort;
+        const count = parseInt(end) - parseInt(start);
+        dopParametr = "ORDER BY " + sort + " " + order + " LIMIT " + start + ", " + count + "";
+    }
+    db.query("SELECT group_id AS id, owner, group_name, group_description, city FROM group_network " + dopParametr, (error, rows, fields) => {
         if (error) {
             response.status(400, error, res)
         } else {
